@@ -3,7 +3,6 @@ src/logs/
 src/*.log
 src/npm-debug.log*
 
-
 # Dependency directories
 src/node_modules/
 
