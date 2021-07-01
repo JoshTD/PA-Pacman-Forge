@@ -7,7 +7,13 @@
 ## Индивидуальные планы работы
 
 - [Хрусталев Г.Н.](Khrustalev.md)
+- [Зарубин А.Н.](Zarubin.md)
+- [Козырь С.К.](Kozyr.md)
+- [Селезнев В.К.](Seleznev.md)
+- [Свинцицкий Р.Е.](Svintsitskii.md)
 
 ## Отчёты
 
-[Отчет](Report.docx)
+[Отчет](.docs/Report.pdf)
+[Презентация](.docs/Presentation.pdf)
+[Постер](.docs/Poster.pdf)
