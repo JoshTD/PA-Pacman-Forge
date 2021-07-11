@@ -1,6 +1,6 @@
 import * as THREE from './lib/three.module.js';
-import { Level, Map, MAP, LevelType } from './levels.js';
-import { Entity, Objects, Params } from './entity.js';
+import { Objects, Params, Level, Map, MAP, LevelType } from './levels.js';
+import { Direction } from './entity.js';
 import { Pacman } from './pacman.js';
 import { Ghost, Blinky, Pinky, Inky, Clyde, GhostName } from './ghosts.js';
 
@@ -120,8 +120,8 @@ export class Game {
     public Pinky: Pinky;
     public Inky: Inky;
     public Clyde: Clyde;
-    private sides = [ 'front', 'back', 'right', 'left', 'top', 'bottom' ];
     private static planes = {};
+    private timer: any;
 
     constructor() {
         Game.curLevel = 'front';
@@ -192,7 +192,7 @@ export class Game {
         let geometry = new THREE.PlaneGeometry(Params.CubeSize, Params.CubeSize);
         let material = new THREE.MeshStandardMaterial({color: 0xffffff, transparent: true, opacity: 0.0 });
 
-        for (let side of this.sides)
+        for (let side in Game.map)
         {
             let offset = { // Добавление дополнительного смещения в половину высоты стены
                 x: Game.map[side].offset.x ? (Game.map[side].offset.x > 0 ? Game.map[side].offset.x + Params.Depth/2 : Game.map[side].offset.x - Params.Depth/2) : 0,
@@ -206,15 +206,13 @@ export class Game {
 
         this.loadDots();
 
-        this.sides.forEach(side => {
+        for (let side in Game.map)
             for (let dot of Game.levelDots[side])
                 Game.planes[side].add(dot.mesh);
-        });
-
+            
         let planesArray = [];
-        this.sides.forEach(side => {
+        for (let side in Game.map) 
             planesArray.push(Game.planes[side]);
-        });
         return planesArray;
     }
 
@@ -276,7 +274,7 @@ export class Game {
         this.Pacman.spawnCell = this.findObjects(Objects.pacman, Game.map[Game.curLevel].grid)[0];
         let pacman = scene;
         pacman.scale.set(Pacman.Size, Pacman.Size, Pacman.Size);
-        let point = this.getPointOnPlane(position.i, position.j, Game.curLevel);
+        let point = Game.getPointOnPlane(position.i, position.j, Game.curLevel);
         pacman.position.set(point.x, point.y, point.z);
         this.Pacman.setModel(pacman);
         pacman.rotateY(-Math.PI / 2);
@@ -291,7 +289,7 @@ export class Game {
                 this.Blinky = new Blinky(position.i, position.j);
                 let blinky = scene;
                 blinky.scale.set(Ghost.Size, Ghost.Size, Ghost.Size);
-                point = this.getPointOnPlane(position.i, position.j, Game.curLevel);
+                point = Game.getPointOnPlane(position.i, position.j, Game.curLevel);
                 blinky.position.set(point.x, point.y, point.z);
                 this.Blinky.setModel(blinky);
                 break;
@@ -300,7 +298,7 @@ export class Game {
                 this.Pinky = new Pinky(position.i, position.j);
                 let pinky = scene;
                 pinky.scale.set(Ghost.Size, Ghost.Size, Ghost.Size);
-                point = this.getPointOnPlane(position.i, position.j, Game.curLevel);
+                point = Game.getPointOnPlane(position.i, position.j, Game.curLevel);
                 pinky.position.set(point.x, point.y, point.z);
                 this.Pinky.setModel(pinky);
                 break;
@@ -309,7 +307,7 @@ export class Game {
                 this.Inky = new Inky(position.i, position.j);
                 let inky = scene;
                 inky.scale.set(Ghost.Size, Ghost.Size, Ghost.Size);
-                point = this.getPointOnPlane(position.i, position.j, Game.curLevel);
+                point = Game.getPointOnPlane(position.i, position.j, Game.curLevel);
                 inky.position.set(point.x, point.y, point.z);
                 this.Inky.setModel(inky);
                 break;
@@ -318,16 +316,131 @@ export class Game {
                 this.Clyde = new Clyde(position.i, position.j);
                 let clyde = scene;
                 clyde.scale.set(Ghost.Size, Ghost.Size, Ghost.Size);
-                point = this.getPointOnPlane(position.i, position.j, Game.curLevel);
+                point = Game.getPointOnPlane(position.i, position.j, Game.curLevel);
                 clyde.position.set(point.x, point.y, point.z);
                 this.Clyde.setModel(clyde);
                 break;
         }
+        
+        this.timer = setInterval(() => {
+            this.calcDirection(ghost);
+            console.log('tick');
+        }, 500);
+        
     }
     
     private clearCheckedCells(checkedCells): void {
         for (let i = 0; i < Params.Rows; i++)
             checkedCells[i] = [];
+    }
+
+    public calcDirection(ghost: GhostName) {
+        let counter = 0;
+        let left = Infinity, right = Infinity, up = Infinity, down = Infinity;
+        switch(ghost) {
+            case 'Blinky':
+                if (this.Blinky.moveDirection != 'right' && this.Blinky.canMove('left'))
+                {
+                    let next = this.Blinky.getNextCellOrNull('left');
+                    if (next != null)
+                    {
+                        left = Math.round
+                            (
+                                Math.sqrt( 
+                                    Math.pow(this.Pacman.cell.i - next.i, 2) + Math.pow(this.Pacman.cell.j - next.j, 2) 
+                                    )
+                            );
+                        counter++;
+                    }
+                }
+                if (this.Blinky.moveDirection != 'left' && this.Blinky.canMove('right'))
+                {
+                    let next = this.Blinky.getNextCellOrNull('right');
+                    if (next != null)
+                    {
+                        right = Math.round
+                            (
+                                Math.sqrt( 
+                                    Math.pow(this.Pacman.cell.i - next.i, 2) + Math.pow(this.Pacman.cell.j - next.j, 2) 
+                                    )
+                            );
+                        counter++;
+                    }
+                }
+                if (this.Blinky.moveDirection != 'down' && this.Blinky.canMove('up'))
+                {
+                    let next = this.Blinky.getNextCellOrNull('up');
+                    if (next != null)
+                    {
+                        up = Math.round
+                            (
+                                Math.sqrt( 
+                                    Math.pow(this.Pacman.cell.i - next.i, 2) + Math.pow(this.Pacman.cell.j - next.j, 2) 
+                                    )
+                            );
+                        counter++;
+                    }
+                }
+                if (this.Blinky.moveDirection != 'up' && this.Blinky.canMove('down'))
+                {
+                    let next = this.Blinky.getNextCellOrNull('down');
+                    if (next != null)
+                    {
+                        down = Math.round
+                            (
+                                Math.sqrt( 
+                                    Math.pow(this.Pacman.cell.i - next.i, 2) + Math.pow(this.Pacman.cell.j - next.j, 2) 
+                                    )
+                            );
+                        counter++;
+                    }
+                }
+                
+                if (counter >= 1) {
+                    let min = Math.min(left, right, up, down);
+                    if (min == Infinity) {
+                        console.error(Infinity);
+                    } else {
+                        switch(min) {
+                            case up:
+                                if (this.Blinky.canMove('up')) {
+                                    console.log('Blinky is moving up');
+                                    this.Blinky.startMovement('up');
+                                    break;
+                                }
+                            case down:
+                                if (this.Blinky.canMove('down')) {
+                                    console.log('Blinky is moving down');
+                                    this.Blinky.startMovement('down');
+                                    break;
+                                }
+                            case left:
+                                if (this.Blinky.canMove('left')) {
+                                    console.log('Blinky is moving left');
+                                    this.Blinky.startMovement('left');
+                                    break;
+                                }
+                            case right:
+                                if (this.Blinky.canMove('right')) {
+                                    console.log('Blinky is moving right');
+                                    this.Blinky.startMovement('right');
+                                    break;
+                                }
+                            default:
+                        }
+                    }
+                }
+                break;
+            case 'Pinky':
+                // TODO
+                break;
+            case 'Inky':
+                // TODO
+                break;
+            case 'Clyde':
+                // TODO
+                break;
+        }
     }
 
     private clearLevelDots(): void {
@@ -492,7 +605,7 @@ export class Game {
         return wall.find(item => item.x == x && item.y == y);
     }
 
-    private getPointOnPlane(i: number, j: number, level: LevelType) {
+    public static getPointOnPlane(i: number, j: number, level: LevelType) {
         let delta = Params.CellSize / 2;
         let radius = Params.CubeSize / 2;
         let x = j * Params.CellSize - (radius - delta);
